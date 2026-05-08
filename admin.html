@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serene Touch – Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --gold: #C9A96E; --gold-light: #E8D5B0; --dark: #1A1614; --dark2: #2C2420;
+    --cream: #F5F0E8; --cream2: #EDE5D5; --muted: #8A7A6E; --white: #FFFFFF;
+    --radius: 16px; --green: #2D6A4F; --red: #C0392B;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--dark); min-height: 100vh; }
+  .site { max-width: 900px; margin: 0 auto; padding: 0 1.2rem 4rem; }
+
+  /* NAV */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 1.3rem 0; border-bottom: 1px solid var(--cream2); margin-bottom: .5rem; }
+  .logo { font-family: 'Playfair Display', serif; font-size: 1.45rem; color: var(--dark); }
+  .logo span { color: var(--gold); }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .nav-back { font-size: .82rem; color: var(--muted); text-decoration: none; padding: 6px 14px; border: 1.5px solid var(--cream2); border-radius: 100px; transition: all .2s; }
+  .nav-back:hover { border-color: var(--gold); color: var(--gold); }
+  .sync-status { font-size: .75rem; padding: 5px 12px; border-radius: 100px; display: flex; align-items: center; gap: 6px; }
+  .sync-status.saved { background: rgba(45,106,79,.1); color: var(--green); }
+  .sync-status.saving { background: rgba(201,169,110,.1); color: var(--gold); }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .sync-dot.blink { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+  /* ADMIN HEADER */
+  .admin-header { background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%); border-radius: 22px; padding: 2rem 2.2rem; margin: 1.5rem 0 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+  .admin-header h2 { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: #FFF8EE; margin-bottom: 4px; }
+  .admin-header p { font-size: .84rem; color: rgba(255,248,238,.55); }
+  .admin-stats { display: flex; gap: 1.5rem; }
+  .astat { text-align: center; }
+  .astat-num { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--gold); }
+  .astat-label { font-size: .68rem; color: rgba(255,248,238,.45); letter-spacing: .08em; }
+
+  /* SECTION */
+  .section { background: var(--white); border-radius: 20px; padding: 1.8rem; border: 1px solid var(--cream2); margin-bottom: 1.5rem; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.3rem; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; }
+  .section-count { font-size: .78rem; color: var(--muted); background: var(--cream); padding: 3px 10px; border-radius: 100px; }
+
+  /* SERVICE LIST */
+  .svc-list { display: flex; flex-direction: column; gap: .55rem; }
+  .svc-row { display: grid; grid-template-columns: 2.5rem 1fr auto auto auto; align-items: center; gap: .75rem; padding: .85rem 1rem; background: var(--cream); border-radius: 12px; border: 1.5px solid transparent; transition: border-color .2s; }
+  .svc-row:hover { border-color: var(--cream2); }
+  .svc-row.editing { border-color: var(--gold); background: #FFFBF4; }
+  .svc-icon-cell { font-size: 1.5rem; text-align: center; }
+  .svc-row-name { font-weight: 500; font-size: .9rem; }
+  .svc-row-meta { font-size: .74rem; color: var(--muted); margin-top: 2px; }
+  .svc-row-price { font-weight: 500; color: var(--gold); font-size: .9rem; white-space: nowrap; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--cream2); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; color: var(--muted); font-size: 1rem; }
+  .icon-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(201,169,110,.06); }
+  .icon-btn.del:hover { border-color: var(--red); color: var(--red); }
+
+  /* EDIT PANEL */
+  .edit-panel { background: var(--cream); border-radius: 12px; padding: 1rem 1.1rem; margin-top: .4rem; border: 1.5px solid var(--gold); display: none; }
+  .edit-panel.open { display: block; }
+  .ep-grid { display: grid; grid-template-columns: 3rem 1fr 5.5rem 7.5rem auto; gap: .7rem; align-items: end; }
+  .ep-fg { display: flex; flex-direction: column; gap: 4px; }
+  .ep-fg label { font-size: .71rem; color: var(--muted); letter-spacing: .05em; font-weight: 500; }
+  .ep-fg input { background: var(--white); border: 1.5px solid var(--cream2); border-radius: 8px; padding: .5rem .75rem; font-family: 'DM Sans', sans-serif; font-size: .85rem; color: var(--dark); outline: none; transition: border-color .2s; }
+  .ep-fg input:focus { border-color: var(--gold); }
+  .ep-save { height: 36px; padding: 0 14px; border-radius: 8px; background: var(--gold); border: none; cursor: pointer; color: var(--dark); font-family: 'DM Sans', sans-serif; font-size: .83rem; font-weight: 500; white-space: nowrap; transition: background .2s; }
+  .ep-save:hover { background: #B8924A; }
+
+  /* ADD FORM */
+  .add-btn { display: flex; align-items: center; gap: 8px; padding: .7rem 1.1rem; background: transparent; border: 1.5px dashed var(--cream2); border-radius: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: .85rem; color: var(--muted); transition: all .2s; width: 100%; margin-top: .5rem; }
+  .add-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .add-form { background: var(--cream); border-radius: 12px; padding: 1.1rem; border: 1.5px solid var(--gold); margin-top: .5rem; display: none; }
+  .add-form.open { display: block; }
+  .af-grid { display: grid; grid-template-columns: 3rem 1fr 5.5rem 7.5rem; gap: .75rem; margin-bottom: .8rem; }
+  .af-save { width: 100%; padding: .65rem; background: var(--gold); border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: .88rem; color: var(--dark); cursor: pointer; font-weight: 500; transition: background .2s; }
+  .af-save:hover { background: #B8924A; }
+
+  /* TERAPIS LIST */
+  .ter-list { display: flex; flex-direction: column; gap: .5rem; }
+  .ter-row { display: grid; grid-template-columns: 2.5rem 1fr auto auto auto; align-items: center; gap: .75rem; padding: .75rem .9rem; background: var(--cream); border-radius: 10px; border: 1.5px solid transparent; transition: border-color .2s; }
+  .ter-row:hover { border-color: var(--cream2); }
+  .ter-row.editing { border-color: var(--gold); background: #FFFBF4; }
+  .ter-av { width: 36px; height: 36px; border-radius: 50%; background: var(--cream2); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+  .ter-row-name { font-weight: 500; font-size: .88rem; }
+  .ter-row-rat { font-size: .72rem; color: var(--gold); margin-top: 2px; }
+  .ter-ep-grid { display: grid; grid-template-columns: 3rem 1fr 6rem auto; gap: .7rem; align-items: end; }
+
+  /* PREVIEW SECTION */
+  .preview-bar { background: rgba(201,169,110,.08); border: 1px solid rgba(201,169,110,.25); border-radius: 12px; padding: .9rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+  .preview-bar p { font-size: .84rem; color: var(--muted); }
+  .preview-bar strong { color: var(--dark); }
+  .btn-preview { padding: .55rem 1.2rem; background: var(--dark); color: #FFF8EE; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: .83rem; cursor: pointer; text-decoration: none; display: inline-block; transition: background .2s; }
+  .btn-preview:hover { background: var(--dark2); }
+
+  /* RESET */
+  .danger-zone { border: 1.5px solid rgba(192,57,43,.25); border-radius: 12px; padding: 1rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; }
+  .danger-zone p { font-size: .82rem; color: var(--muted); }
+  .btn-reset { padding: .55rem 1.2rem; background: transparent; color: var(--red); border: 1.5px solid rgba(192,57,43,.35); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: .82rem; cursor: pointer; transition: all .2s; }
+  .btn-reset:hover { background: rgba(192,57,43,.08); border-color: var(--red); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--dark); color: #FFF8EE; padding: .75rem 1.3rem; border-radius: 10px; font-size: .85rem; display: flex; align-items: center; gap: 8px; opacity: 0; transform: translateY(10px); transition: all .3s; pointer-events: none; z-index: 999; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 640px) {
+    .ep-grid, .af-grid { grid-template-columns: 1fr 1fr; }
+    .ep-grid > :first-child, .af-grid > :first-child { grid-column: 1 / -1; }
+    .ep-save, .af-save { grid-column: 1 / -1; }
+    .ter-ep-grid { grid-template-columns: 1fr 1fr; }
+    .admin-header { flex-direction: column; align-items: flex-start; }
+    .svc-row { grid-template-columns: 2rem 1fr auto auto; }
+    .ter-row { grid-template-columns: 2rem 1fr auto auto; }
+    nav { flex-wrap: wrap; gap: .6rem; }
+  }
+</style>
+</head>
+<body>
+<div class="site">
+  <nav>
+    <div class="logo">Serene<span>Touch</span> <span style="font-family:'DM Sans';font-size:.75rem;color:var(--muted);font-weight:400">Admin</span></div>
+    <div class="nav-right">
+      <div class="sync-status saved" id="syncStatus">
+        <div class="sync-dot" id="syncDot"></div>
+        <span id="syncText">Tersimpan</span>
+      </div>
+      <a href="index.html" class="nav-back">← Halaman Booking</a>
+    </div>
+  </nav>
+
+  <div class="admin-header">
+    <div>
+      <h2>Panel Admin</h2>
+      <p>Kelola layanan, harga, dan terapis — perubahan langsung tampil di halaman booking</p>
+    </div>
+    <div class="admin-stats">
+      <div class="astat"><div class="astat-num" id="statSvc">—</div><div class="astat-label">LAYANAN</div></div>
+      <div class="astat"><div class="astat-num" id="statTer">—</div><div class="astat-label">TERAPIS</div></div>
+    </div>
+  </div>
+
+  <div class="preview-bar">
+    <p><strong>Perubahan langsung tersinkron</strong> — buka halaman booking di tab lain untuk melihat hasilnya secara real-time.</p>
+    <a href="index.html" target="_blank" class="btn-preview">Buka Booking ↗</a>
+  </div>
+
+  <!-- CLOUD SETUP BANNER (tampil hanya jika belum dikonfigurasi) -->
+  <div id="cloudBanner" style="display:none;background:rgba(201,169,110,.1);border:1.5px solid rgba(201,169,110,.35);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.3rem;font-size:.84rem;line-height:1.7;color:var(--dark)">
+    <strong>☁️ Aktifkan Sinkronisasi Multi-Perangkat</strong><br>
+    Saat ini data hanya tersimpan di browser ini. Untuk sinkronisasi antar HP / komputer:<br>
+    1. Daftar gratis di <a href="https://jsonbin.io" target="_blank" style="color:var(--gold)">jsonbin.io</a><br>
+    2. Buat Bin baru → catat <strong>Bin ID</strong><br>
+    3. Di halaman API Keys → catat <strong>X-Master-Key</strong><br>
+    4. Isi <code>JSONBIN_KEY</code> dan <code>JSONBIN_BIN</code> di bagian atas script kedua file HTML ini
+  </div>
+
+  <!-- SERVICES -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Daftar Layanan</div>
+      <div class="section-count" id="svcCount">0 layanan</div>
+    </div>
+    <div class="svc-list" id="svcList"></div>
+    <button class="add-btn" id="addSvcBtn" onclick="toggleAddSvc()">
+      + Tambah Layanan Baru
+    </button>
+    <div class="add-form" id="addSvcForm">
+      <div class="af-grid">
+        <div class="ep-fg"><label>IKON</label><input type="text" id="afIcon" placeholder="💆" maxlength="4" style="text-align:center;font-size:1.2rem"></div>
+        <div class="ep-fg"><label>NAMA LAYANAN</label><input type="text" id="afName" placeholder="Contoh: Pijat Refleksi"></div>
+        <div class="ep-fg"><label>DURASI (MENIT)</label><input type="number" id="afDur" placeholder="60" min="15" max="240"></div>
+        <div class="ep-fg"><label>HARGA (RP)</label><input type="number" id="afPrice" placeholder="175000" min="0" step="5000"></div>
+      </div>
+      <button class="af-save" onclick="addService()">+ Simpan Layanan</button>
+    </div>
+  </div>
+
+  <!-- TERAPIS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Daftar Terapis</div>
+      <div class="section-count" id="terCount">0 terapis</div>
+    </div>
+    <div class="ter-list" id="terList"></div>
+    <button class="add-btn" id="addTerBtn" onclick="toggleAddTer()">
+      + Tambah Terapis Baru
+    </button>
+    <div class="add-form" id="addTerForm">
+      <div class="af-grid" style="grid-template-columns:3rem 1fr 6rem">
+        <div class="ep-fg"><label>EMOJI</label><input type="text" id="atIcon" placeholder="👩" maxlength="4" style="text-align:center;font-size:1.2rem"></div>
+        <div class="ep-fg"><label>NAMA TERAPIS</label><input type="text" id="atName" placeholder="Contoh: Ibu Ratna"></div>
+        <div class="ep-fg"><label>RATING</label><input type="text" id="atRat" placeholder="4.9"></div>
+      </div>
+      <button class="af-save" onclick="addTerapis()" style="margin-top:.7rem">+ Simpan Terapis</button>
+    </div>
+
+    <div class="danger-zone">
+      <p>Reset semua data ke pengaturan awal (tidak bisa dibatalkan)</p>
+      <button class="btn-reset" onclick="resetData()">Reset ke Default</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// JSONBin.io digunakan sebagai backend multi-device gratis.
+// Isi JSONBIN_KEY dan JSONBIN_BIN_ID setelah membuat akun di jsonbin.io
+// Panduan: https://jsonbin.io → Sign Up → API Keys → Create Bin
+const JSONBIN_KEY  = '';          // ← isi dengan X-Master-Key kamu
+const JSONBIN_BIN  = '';          // ← isi dengan Bin ID kamu
+const STORAGE_KEY  = 'serenetouch_data_v1'; // cache lokal
+
+const DEFAULT_DATA = {
+  services: [
+    { id: 1, icon: '🌸', name: 'Pijat Relaksasi', dur: 60, price: 150000 },
+    { id: 2, icon: '💆', name: 'Deep Tissue',     dur: 75, price: 200000 },
+    { id: 3, icon: '🕯️', name: 'Aromaterapi',    dur: 60, price: 180000 },
+    { id: 4, icon: '🔥', name: 'Batu Panas',      dur: 90, price: 250000 }
+  ],
+  terapis: [
+    { id: 1, icon: '👩',   name: 'Ibu Sari',          rating: '5.0' },
+    { id: 2, icon: '👩‍🦱', name: 'Ibu Dewi',          rating: '4.9' },
+    { id: 3, icon: '👨',   name: 'Pak Adi',           rating: '4.8' },
+    { id: 4, icon: '🎲',   name: 'Terapis Mana Saja', rating: 'Tersedia' }
+  ]
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let data = null;
+let nextSvcId = 10, nextTerId = 10;
+const fmt = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+const USE_CLOUD = () => JSONBIN_KEY && JSONBIN_BIN;
+
+function cacheSet(d) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ data: d, ts: Date.now() }));
+  // Broadcast ke tab lain (same browser)
+  window.dispatchEvent(new StorageEvent('storage', {
+    key: STORAGE_KEY,
+    newValue: localStorage.getItem(STORAGE_KEY),
+    storageArea: localStorage
+  }));
+}
+
+function cacheGet() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { const p = JSON.parse(raw); return p.data || null; }
+  } catch(e) {}
+  return null;
+}
+
+async function cloudSave(d) {
+  if (!USE_CLOUD()) return false;
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY,
+        'X-Bin-Versioning': 'false'
+      },
+      body: JSON.stringify(d)
+    });
+    return res.ok;
+  } catch(e) {
+    console.warn('[SereneTouch] Gagal simpan cloud:', e);
+    return false;
+  }
+}
+
+async function cloudLoad() {
+  if (!USE_CLOUD()) return null;
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    return json.record || null;
+  } catch(e) {
+    console.warn('[SereneTouch] Gagal load cloud:', e);
+    return null;
+  }
+}
+
+async function saveData() {
+  setSyncStatus('saving');
+  cacheSet(data);
+  if (USE_CLOUD()) {
+    const ok = await cloudSave(data);
+    setSyncStatus(ok ? 'saved' : 'error');
+  } else {
+    setTimeout(() => setSyncStatus('saved'), 400);
+  }
+}
+
+async function loadData() {
+  if (USE_CLOUD()) {
+    const cloud = await cloudLoad();
+    if (cloud) { cacheSet(cloud); return cloud; }
+  }
+  return cacheGet() || JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+
+function setSyncStatus(state) {
+  const el  = document.getElementById('syncStatus');
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  const map = {
+    saved:   { cls: 'sync-status saved',   dotAnim: '',      text: USE_CLOUD() ? '☁️ Tersimpan' : 'Tersimpan' },
+    saving:  { cls: 'sync-status saving',  dotAnim: 'blink', text: 'Menyimpan...' },
+    error:   { cls: 'sync-status saving',  dotAnim: 'blink', text: '⚠️ Gagal simpan' },
+    loading: { cls: 'sync-status saving',  dotAnim: 'blink', text: 'Memuat...' },
+  };
+  const s = map[state] || map.saved;
+  el.className  = s.cls;
+  dot.className = 'sync-dot' + (s.dotAnim ? ' ' + s.dotAnim : '');
+  txt.textContent = s.text;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = '✓ ' + msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  setSyncStatus('loading');
+  // Tampilkan banner jika cloud belum dikonfigurasi
+  if (!USE_CLOUD()) {
+    document.getElementById('cloudBanner').style.display = 'block';
+  }
+  data = await loadData();
+  // Set next IDs
+  const maxSvc = Math.max(...data.services.map(s => s.id), 0);
+  const maxTer = Math.max(...data.terapis.map(t => t.id), 0);
+  nextSvcId = maxSvc + 1;
+  nextTerId = maxTer + 1;
+  setSyncStatus('saved');
+  render();
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  renderServices();
+  renderTerapis();
+  document.getElementById('statSvc').textContent = data.services.length;
+  document.getElementById('statTer').textContent = data.terapis.length;
+  document.getElementById('svcCount').textContent = data.services.length + ' layanan';
+  document.getElementById('terCount').textContent = data.terapis.length + ' terapis';
+}
+
+function renderServices() {
+  const list = document.getElementById('svcList');
+  list.innerHTML = data.services.map(s => `
+    <div class="svc-row" id="srow-${s.id}">
+      <div class="svc-icon-cell">${s.icon}</div>
+      <div>
+        <div class="svc-row-name">${s.name}</div>
+        <div class="svc-row-meta">⏱ ${s.dur} menit</div>
+      </div>
+      <div class="svc-row-price">${fmt(s.price)}</div>
+      <button class="icon-btn" onclick="toggleEditSvc(${s.id})" title="Edit">✏️</button>
+      <button class="icon-btn del" onclick="deleteSvc(${s.id})" title="Hapus">🗑️</button>
+    </div>
+    <div class="edit-panel" id="sep-${s.id}">
+      <div class="ep-grid">
+        <div class="ep-fg"><label>IKON</label><input type="text" id="ei-${s.id}" value="${s.icon}" maxlength="4" style="text-align:center;font-size:1.1rem"></div>
+        <div class="ep-fg"><label>NAMA LAYANAN</label><input type="text" id="en-${s.id}" value="${s.name}"></div>
+        <div class="ep-fg"><label>DURASI</label><input type="number" id="ed-${s.id}" value="${s.dur}" min="15" max="240"></div>
+        <div class="ep-fg"><label>HARGA (RP)</label><input type="number" id="ep-${s.id}" value="${s.price}" min="0" step="5000"></div>
+        <button class="ep-save" onclick="saveEditSvc(${s.id})">Simpan</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderTerapis() {
+  const list = document.getElementById('terList');
+  list.innerHTML = data.terapis.map(t => `
+    <div class="ter-row" id="trow-${t.id}">
+      <div class="ter-av">${t.icon}</div>
+      <div>
+        <div class="ter-row-name">${t.name}</div>
+        <div class="ter-row-rat">${t.rating.includes('.') ? '★ ' + t.rating : t.rating}</div>
+      </div>
+      <button class="icon-btn" onclick="toggleEditTer(${t.id})" title="Edit">✏️</button>
+      <button class="icon-btn del" onclick="deleteTer(${t.id})" title="Hapus">🗑️</button>
+    </div>
+    <div class="edit-panel" id="tep-${t.id}">
+      <div class="ter-ep-grid">
+        <div class="ep-fg"><label>EMOJI</label><input type="text" id="ti-${t.id}" value="${t.icon}" maxlength="4" style="text-align:center;font-size:1.1rem"></div>
+        <div class="ep-fg"><label>NAMA</label><input type="text" id="tn-${t.id}" value="${t.name}"></div>
+        <div class="ep-fg"><label>RATING</label><input type="text" id="tr-${t.id}" value="${t.rating}"></div>
+        <button class="ep-save" onclick="saveEditTer(${t.id})">Simpan</button>
+      </div>
+    </div>`).join('');
+}
+
+// ─── SERVICE CRUD ─────────────────────────────────────────────────────────────
+function toggleEditSvc(id) {
+  const ep = document.getElementById('sep-' + id);
+  const row = document.getElementById('srow-' + id);
+  const isOpen = ep.classList.contains('open');
+  document.querySelectorAll('.edit-panel').forEach(e => e.classList.remove('open'));
+  document.querySelectorAll('.svc-row, .ter-row').forEach(r => r.classList.remove('editing'));
+  if (!isOpen) { ep.classList.add('open'); row.classList.add('editing'); }
+}
+
+function saveEditSvc(id) {
+  const s = data.services.find(x => x.id === id);
+  const newIcon  = document.getElementById('ei-' + id).value.trim();
+  const newName  = document.getElementById('en-' + id).value.trim();
+  const newDur   = parseInt(document.getElementById('ed-' + id).value);
+  const newPrice = parseInt(document.getElementById('ep-' + id).value);
+  if (!newName) { alert('Nama layanan tidak boleh kosong.'); return; }
+  if (!newPrice || newPrice < 0) { alert('Harga tidak valid.'); return; }
+  s.icon  = newIcon  || s.icon;
+  s.name  = newName;
+  s.dur   = newDur   || s.dur;
+  s.price = newPrice;
+  saveData();
+  render();
+  showToast('Layanan "' + s.name + '" berhasil diperbarui');
+}
+
+function deleteSvc(id) {
+  const s = data.services.find(x => x.id === id);
+  if (!confirm('Hapus layanan "' + s.name + '"?')) return;
+  data.services = data.services.filter(x => x.id !== id);
+  saveData();
+  render();
+  showToast('Layanan dihapus');
+}
+
+function toggleAddSvc() {
+  const f = document.getElementById('addSvcForm');
+  f.classList.toggle('open');
+  if (f.classList.contains('open')) document.getElementById('afName').focus();
+}
+
+function addService() {
+  const icon  = document.getElementById('afIcon').value.trim() || '💆';
+  const name  = document.getElementById('afName').value.trim();
+  const dur   = parseInt(document.getElementById('afDur').value)   || 60;
+  const price = parseInt(document.getElementById('afPrice').value) || 0;
+  if (!name)  { alert('Nama layanan harus diisi.'); return; }
+  if (price <= 0) { alert('Harga harus lebih dari 0.'); return; }
+  data.services.push({ id: nextSvcId++, icon, name, dur, price });
+  ['afIcon','afName','afDur','afPrice'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('addSvcForm').classList.remove('open');
+  saveData();
+  render();
+  showToast('Layanan "' + name + '" berhasil ditambahkan');
+}
+
+// ─── TERAPIS CRUD ─────────────────────────────────────────────────────────────
+function toggleEditTer(id) {
+  const ep = document.getElementById('tep-' + id);
+  const row = document.getElementById('trow-' + id);
+  const isOpen = ep.classList.contains('open');
+  document.querySelectorAll('.edit-panel').forEach(e => e.classList.remove('open'));
+  document.querySelectorAll('.svc-row, .ter-row').forEach(r => r.classList.remove('editing'));
+  if (!isOpen) { ep.classList.add('open'); row.classList.add('editing'); }
+}
+
+function saveEditTer(id) {
+  const t = data.terapis.find(x => x.id === id);
+  const newIcon   = document.getElementById('ti-' + id).value.trim();
+  const newName   = document.getElementById('tn-' + id).value.trim();
+  const newRating = document.getElementById('tr-' + id).value.trim();
+  if (!newName) { alert('Nama terapis tidak boleh kosong.'); return; }
+  t.icon   = newIcon   || t.icon;
+  t.name   = newName;
+  t.rating = newRating || t.rating;
+  saveData();
+  render();
+  showToast('Terapis "' + t.name + '" berhasil diperbarui');
+}
+
+function deleteTer(id) {
+  const t = data.terapis.find(x => x.id === id);
+  if (!confirm('Hapus terapis "' + t.name + '"?')) return;
+  data.terapis = data.terapis.filter(x => x.id !== id);
+  saveData();
+  render();
+  showToast('Terapis dihapus');
+}
+
+function toggleAddTer() {
+  const f = document.getElementById('addTerForm');
+  f.classList.toggle('open');
+  if (f.classList.contains('open')) document.getElementById('atName').focus();
+}
+
+function addTerapis() {
+  const icon   = document.getElementById('atIcon').value.trim() || '👤';
+  const name   = document.getElementById('atName').value.trim();
+  const rating = document.getElementById('atRat').value.trim()  || '5.0';
+  if (!name) { alert('Nama terapis harus diisi.'); return; }
+  data.terapis.push({ id: nextTerId++, icon, name, rating });
+  ['atIcon','atName','atRat'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('addTerForm').classList.remove('open');
+  saveData();
+  render();
+  showToast('Terapis "' + name + '" berhasil ditambahkan');
+}
+
+// ─── RESET ────────────────────────────────────────────────────────────────────
+function resetData() {
+  if (!confirm('Reset semua data ke pengaturan awal? Semua perubahan akan hilang.')) return;
+  data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  nextSvcId = 10;
+  nextTerId = 10;
+  saveData();
+  render();
+  showToast('Data berhasil direset ke default');
+}
+
+init();
+</script>
+</body>
+</html>
